@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-navy-50: #f0f4f8;
+  --color-navy-100: #d9e2ec;
+  --color-navy-200: #bcccdc;
+  --color-navy-300: #9fb3c8;
+  --color-navy-400: #7892b0;
+  --color-navy-500: #5e7a96;
+  --color-navy-600: #486581;
+  --color-navy-700: #334e68;
+  --color-navy-800: #243b53;
+  --color-navy-900: #102a43;
+  --color-navy-950: #0a1c2f;
+
+  --color-mint-50: #ebfff8;
+  --color-mint-100: #c7ffe8;
+  --color-mint-200: #94ffd5;
+  --color-mint-300: #5efbc1;
+  --color-mint-400: #3ee5a5;
+  --color-mint-500: #16c98e;
+  --color-mint-600: #0aa774;
+  --color-mint-700: #088461;
+  --color-mint-800: #0a6b4f;
+  --color-mint-900: #0a5742;
+
+  --color-gold-50: #fffaeb;
+  --color-gold-100: #fff1c6;
+  --color-gold-200: #ffe188;
+  --color-gold-300: #ffcb4a;
+  --color-gold-400: #ffb020;
+  --color-gold-500: #f99007;
+  --color-gold-600: #db6f00;
+  --color-gold-700: #b54e02;
+  --color-gold-800: #933d06;
+  --color-gold-900: #7a3208;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #f0f4f8;
+  color: #102a43;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-mint-500 text-navy-950 font-semibold rounded-lg
+      transition-all duration-200 hover:bg-mint-400 active:scale-[0.98]
+      disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-mint-500/20;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-navy-100 text-navy-800 font-semibold rounded-lg
+      border border-navy-200 transition-all duration-200 hover:bg-navy-200 active:scale-[0.98]
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-700 font-semibold rounded-lg
+      border border-red-200 transition-all duration-200 hover:bg-red-100 active:scale-[0.98]
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 text-navy-600 font-medium rounded-lg
+      transition-all duration-200 hover:bg-navy-100 hover:text-navy-900 active:scale-[0.98];
+  }
+  .card {
+    @apply bg-white rounded-xl border border-navy-100 shadow-sm;
+  }
+  .input-field {
+    @apply w-full px-3.5 py-2.5 bg-white border border-navy-200 rounded-lg text-navy-900 placeholder-navy-300
+      transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-mint-400/40 focus:border-mint-400;
+  }
+  .label-field {
+    @apply block text-sm font-medium text-navy-700 mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--color-navy-200);
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: var(--color-navy-300);
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  .animate-slide-up {
+    animation: slideUp 0.35s ease-out;
+  }
+  .animate-pulse-soft {
+    animation: pulseSoft 2s ease-in-out infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
