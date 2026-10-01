@@ -82,7 +82,15 @@ export function EmployeesPage() {
         const updated = await updateEmployee(editing.id, form);
         setEmployees((prev) => prev.map((e) => (e.id === editing.id ? updated : e)));
       } else {
-        const created = await createEmployee(form);
+        const parts = form.fullName.trim().split(' ');
+
+const employeeData = {
+  firstName: parts[0],
+  lastName: parts.slice(1).join(' '),
+  email: form.email
+};
+
+const created = await createEmployee(employeeData);
         setEmployees((prev) => [...prev, created]);
       }
       setModalOpen(false);
