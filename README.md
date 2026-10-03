@@ -1,197 +1,161 @@
 # 🏦 BankApp Frontend
 
-![Frontend](https://img.shields.io/badge/Frontend-Web%20Application-blue)
 ![React](https://img.shields.io/badge/React-18-61DAFB)
-![Vite](https://img.shields.io/badge/Vite-Fast%20Development-646CFF)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
+![Vite](https://img.shields.io/badge/Vite-646CFF)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-38B2AC)
 ![Keycloak](https://img.shields.io/badge/Authentication-Keycloak-red)
-![JWT](https://img.shields.io/badge/Security-JWT-orange)
+![JWT](https://img.shields.io/badge/Security-OAuth2%20%2F%20JWT-orange)
 ![Cloudflare Pages](https://img.shields.io/badge/Deployment-Cloudflare%20Pages-F38020)
 
-> **Modern web interface for BankApp Microservices, connected to a secured Java/Spring Boot backend through an API Gateway.**
+> Modern web interface for the BankApp Microservices platform, built with React and TypeScript and integrated with a secured Java/Spring Boot backend.
 
-BankApp Frontend is the web client of the **BankApp Microservices** platform.
-
-It provides a user interface for interacting with the backend microservices through a centralized API Gateway, with authentication handled by **Keycloak** and access secured using **OAuth2 / JWT**.
-
-The frontend is designed to work with the distributed backend architecture and is deployed using **Cloudflare Pages**.
+BankApp Frontend is the client application of the BankApp platform. It communicates with the backend through a centralized **Spring Cloud Gateway**, uses **Keycloak** for authentication and JWT-based security, and is deployed on **Cloudflare Pages**.
 
 ---
 
-# ✨ Main Features
+## ✨ Features
 
 * 🔐 Keycloak authentication
-* 🎟️ JWT-based authentication flow
-* 🌐 Communication with the Spring Boot API Gateway
-* 👥 Employee management interface
+* 🎟️ OAuth2 / JWT authentication
+* 🛡️ Bearer-token API requests
+* 👥 Employee management
 * 🏢 Department management
 * 📋 Mission management
 * 💬 Message management
 * 🤝 Partner management
-* 🛡️ Authenticated API requests using Bearer tokens
-* ⚙️ Environment-based API configuration
+* 🌐 REST API integration
+* ⚙️ Environment-based configuration
 * 📱 Responsive web interface
 * ☁️ Cloudflare Pages deployment
 
 ---
 
-# 🏗️ Application Architecture
+## 🏗️ Architecture
 
 ```text
-┌──────────────────────────────┐
-│       BankApp Frontend       │
-│                              │
-│       React + Vite           │
-└──────────────┬───────────────┘
-               │
-               │ Authentication
-               ▼
-┌──────────────────────────────┐
-│           Keycloak           │
-│       OAuth2 / JWT           │
-└──────────────────────────────┘
-               │
-               │ JWT
-               ▼
-┌──────────────────────────────┐
-│        Spring Gateway        │
-│           :8082              │
-└──────────────┬───────────────┘
-               │
-       ┌───────┼────────┬────────────┐
-       ▼       ▼        ▼            ▼
-      HR    Mission   Messages     Partners
-     :8083    :8084     :8085        :8085
+                         ┌─────────────────────┐
+                         │   BankApp Frontend  │
+                         │   React + TypeScript│
+                         │        + Vite       │
+                         └──────────┬──────────┘
+                                    │
+                                    │ Authentication
+                                    ▼
+                         ┌─────────────────────┐
+                         │      Keycloak       │
+                         │    OAuth2 / JWT     │
+                         │      Port 8081       │
+                         └──────────┬──────────┘
+                                    │
+                                    │ JWT
+                                    ▼
+                         ┌─────────────────────┐
+                         │    API Gateway      │
+                         │  Spring Cloud       │
+                         │      Port 8082      │
+                         └──────────┬──────────┘
+                                    │
+                  ┌─────────────────┼─────────────────┐
+                  │                 │                 │
+                  ▼                 ▼                 ▼
+             HR Service       Mission Service   Message Router
+                8083               8084              8085
+                                                        │
+                                                        ▼
+                                                     IBM MQ
 ```
 
-The frontend does not communicate directly with every backend service.
-
-Instead, requests are centralized through the **API Gateway**.
+The frontend communicates with the backend through the Gateway rather than directly accessing each microservice.
 
 ---
 
-# 🔐 Authentication
+## 🔐 Authentication & Security
 
 Authentication is handled by **Keycloak**.
 
-The frontend uses the configured Keycloak realm and client:
+### Keycloak configuration
 
 ```text
-Realm:
-spring-app
-
-Client:
-spring-boot-client
+Realm:  spring-app
+Client: spring-boot-client
 ```
 
-After successful authentication, the frontend receives an access token.
+After authentication, the frontend receives a JWT access token.
 
-The token is then included in API requests:
+Authenticated API requests use:
 
 ```http
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-This allows the backend to authenticate the user and apply the appropriate security rules.
+The backend Gateway validates the authenticated request before routing it to the appropriate microservice.
 
 ---
 
-# 🌐 Backend Integration
+## 🌐 API Integration
 
-The frontend communicates with the backend through the Gateway.
+The frontend communicates with the backend using REST APIs through the Gateway.
+
+### Available routes
 
 ```text
+/api/employees/**  → HR Service
+/api/missions/**   → Mission Service
+/api/messages/**   → Message Router
+/api/partners/**   → Message Router
+```
+
+This architecture keeps the frontend independent from the internal network addresses of the individual microservices.
+
+---
+
+## 🔄 Request Flow
+
+```text
+User
+ │
+ ▼
+BankApp Frontend
+ │
+ │ Login
+ ▼
+Keycloak
+ │
+ │ JWT Access Token
+ ▼
 Frontend
-   │
-   │ HTTP Request
-   │ Authorization: Bearer JWT
-   ▼
-API Gateway :8082
-   │
-   ├── /api/employees/**
-   │        ↓
-   │    HR Service
-   │
-   ├── /api/missions/**
-   │        ↓
-   │    Mission Service
-   │
-   ├── /api/messages/**
-   │        ↓
-   │    Message Router
-   │
-   └── /api/partners/**
-            ↓
-       Message Router
-```
-
-This architecture keeps the frontend independent from the internal service topology.
-
----
-
-# ⚙️ Environment Configuration
-
-The frontend uses Vite environment variables to configure the backend and Keycloak URLs.
-
-Example:
-
-```env
-VITE_API_URL=http://localhost:8082
-VITE_KEYCLOAK_URL=http://localhost:8081
-VITE_KEYCLOAK_REALM=spring-app
-VITE_KEYCLOAK_CLIENT_ID=spring-boot-client
-```
-
-For deployment, these values can be changed without modifying the application source code.
-
-> **Important:** environment files containing local or private configuration should not be committed to Git.
-
----
-
-# ☁️ Deployment
-
-The frontend is deployed using **Cloudflare Pages**.
-
-The deployment architecture is:
-
-```text
-                 Cloudflare Pages
+ │
+ │ Authorization: Bearer JWT
+ ▼
+API Gateway
+ │
+ ├──────────────► HR Service
+ │
+ ├──────────────► Mission Service
+ │
+ ├──────────────► Message Router
+ │
+ └──────────────► Partner APIs
                        │
                        ▼
-              ┌─────────────────┐
-              │ BankApp Frontend│
-              └────────┬────────┘
-                       │
-                       │ HTTPS
-                       ▼
-                API Gateway
-                       │
-                       ▼
-              Spring Boot Services
+                    IBM MQ
 ```
 
-The deployed frontend communicates with the backend Gateway through its configured API URL.
-
 ---
 
-# 🔗 CORS Configuration
-
-Because the frontend and backend can run on different origins, the backend Gateway includes CORS configuration.
-
-The allowed frontend origins include local development URLs and the deployed Cloudflare Pages application.
-
-This allows authenticated browser requests to reach the API Gateway while preserving the `Authorization` header.
-
----
-
-# 🛠️ Technology Stack
+## 🛠️ Technology Stack
 
 ### Frontend
 
 * React
+* TypeScript
 * Vite
-* JavaScript
+* Tailwind CSS
 * HTML5
-* CSS3
+* CSS
+
+The repository contains the Vite, TypeScript and Tailwind configuration used by the application.
 
 ### Authentication
 
@@ -213,47 +177,13 @@ This allows authenticated browser requests to reach the API Gateway while preser
 
 ---
 
-# 📁 Project Structure
+## ⚙️ Environment Configuration
 
-```text
-bankapp-frontend/
-│
-├── public/
-│
-├── src/
-│   ├── components/
-│   ├── pages/
-│   ├── services/
-│   ├── ...
-│
-├── .env
-├── package.json
-├── vite.config.*
-└── README.md
-```
+The frontend uses Vite environment variables for backend and Keycloak configuration.
 
-> The exact structure may evolve as the frontend continues to be developed.
+### Local development
 
----
-
-# 🚀 Running Locally
-
-## 1. Clone the repository
-
-```bash
-git clone <YOUR_FRONTEND_REPOSITORY>
-cd <YOUR_FRONTEND_DIRECTORY>
-```
-
-## 2. Install dependencies
-
-```bash
-npm install
-```
-
-## 3. Configure environment variables
-
-Create a local `.env` file:
+Create a `.env` file:
 
 ```env
 VITE_API_URL=http://localhost:8082
@@ -262,96 +192,177 @@ VITE_KEYCLOAK_REALM=spring-app
 VITE_KEYCLOAK_CLIENT_ID=spring-boot-client
 ```
 
-## 4. Start the development server
+For production, configure the corresponding environment variables in the hosting platform.
+
+> Do not commit private credentials or sensitive environment files to Git.
+
+---
+
+## ☁️ Deployment
+
+The application is deployed using **Cloudflare Pages**.
+
+```text
+                 Cloudflare Pages
+                        │
+                        ▼
+              ┌──────────────────┐
+              │ BankApp Frontend │
+              └────────┬─────────┘
+                       │
+                       │ HTTPS
+                       ▼
+                 API Gateway
+                       │
+                       ▼
+             Spring Boot Backend
+```
+
+The deployed frontend communicates with the backend through the configured API Gateway URL.
+
+---
+
+## 🔗 CORS
+
+Because the frontend and backend can run on different origins, the API Gateway is configured to support cross-origin requests.
+
+The configuration allows the frontend to send authenticated requests containing:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+This enables the browser-based frontend to communicate securely with the backend Gateway.
+
+---
+
+## 📁 Project Structure
+
+```text
+bankapp-frontend/
+│
+├── .bolt/
+├── public/
+│
+├── src/
+│
+├── .gitignore
+├── README.md
+├── eslint.config.js
+├── index.html
+├── package.json
+├── package-lock.json
+├── postcss.config.js
+├── tailwind.config.js
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
+```
+
+The current GitHub repository contains this React/Vite project structure.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/youssefJmaiel/bankapp-frontend.git
+cd bankapp-frontend
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure environment variables
+
+Create:
+
+```text
+.env
+```
+
+with:
+
+```env
+VITE_API_URL=http://localhost:8082
+VITE_KEYCLOAK_URL=http://localhost:8081
+VITE_KEYCLOAK_REALM=spring-app
+VITE_KEYCLOAK_CLIENT_ID=spring-boot-client
+```
+
+### 4. Start the development server
 
 ```bash
 npm run dev
 ```
 
-The Vite development server will provide the local URL.
-
 ---
 
-# 🔄 Application Flow
+## 🏦 Complete BankApp Platform
+
+The frontend is part of a larger distributed banking application:
 
 ```text
-1. User opens BankApp
-          │
-          ▼
-2. Frontend checks authentication
-          │
-          ▼
-3. Keycloak authenticates the user
-          │
-          ▼
-4. Frontend receives JWT
-          │
-          ▼
-5. Frontend calls API Gateway
-          │
-          ▼
-6. Gateway validates the request
-          │
-          ▼
-7. Gateway routes request
-          │
-          ▼
-8. Microservice processes request
-          │
-          ▼
-9. Response returned to frontend
-```
-
----
-
-# 🧩 Integration With BankApp Backend
-
-The frontend is part of the complete BankApp platform:
-
-```text
-                    BANKAPP
-                       │
-          ┌────────────┴────────────┐
-          │                         │
-       FRONTEND                  BACKEND
-          │                         │
-     React + Vite              Spring Boot
-          │                         │
-     Keycloak ◄──────────────► OAuth2/JWT
-          │                         │
-          └──────────► Gateway ◄────┘
+                         BANKAPP
                             │
-                ┌───────────┼───────────┐
-                ▼           ▼           ▼
-               HR        Mission    Message Router
-                                      │
-                                      ▼
-                                    IBM MQ
+             ┌──────────────┴──────────────┐
+             │                             │
+             ▼                             ▼
+        FRONTEND                         BACKEND
+             │                             │
+       React + TypeScript            Spring Boot
+             │                             │
+             │                         Microservices
+             │                             │
+             │                       ┌─────┼─────┐
+             │                       │     │     │
+             │                      HR  Mission Message
+             │                                   Router
+             │                                     │
+             │                                     ▼
+             │                                   IBM MQ
+             │
+             └──────────────┐
+                            │
+                         Keycloak
+                         OAuth2/JWT
+                            │
+                            ▼
+                       API Gateway
 ```
 
 ---
 
-# 🎯 Project Objectives
+## 🎯 Project Objectives
 
-The frontend was developed as the client layer of a distributed enterprise-style application.
+The frontend was developed to demonstrate the integration of a modern web application with an enterprise-oriented distributed backend.
 
-The main objectives are:
+The project demonstrates:
 
-* Build a modern web interface for a microservices backend
-* Integrate frontend authentication with Keycloak
-* Handle JWT-based authenticated requests
-* Consume REST APIs through an API Gateway
-* Separate frontend configuration from source code
-* Deploy the application to a cloud hosting platform
-* Integrate a web client with a distributed Java backend
+* Modern React application development
+* TypeScript-based frontend development
+* Responsive user interface development
+* Authentication with Keycloak
+* OAuth2 / JWT integration
+* Secure REST API consumption
+* API Gateway integration
+* Microservices frontend integration
+* Environment-based configuration
+* Cloud deployment
 
 ---
 
-# 📸 Screenshots
+## 📸 Screenshots
 
-Screenshots of the BankApp interface can be added here to demonstrate the application's user interface and main functionalities.
+Screenshots of the BankApp interface can be added here to demonstrate the main application features.
 
-Example:
+Recommended sections:
 
 ```text
 screenshots/
@@ -359,23 +370,25 @@ screenshots/
 ├── employees.png
 ├── missions.png
 ├── messages.png
+├── partners.png
 └── authentication.png
 ```
 
 ---
 
-# 🔗 Related Project
+## 🔗 Related Repository
 
-### BankApp Microservices Backend
+### Backend — BankApp Microservices
 
-The frontend is connected to the Java/Spring Boot microservices backend:
+[BankApp Microservices Backend](https://github.com/youssefJmaiel/bankapp-microservice?utm_source=chatgpt.com)
 
-**GitHub:**
-https://github.com/youssefJmaiel/bankapp-microservice
+### Frontend
+
+[BankApp Frontend](https://github.com/youssefJmaiel/bankapp-frontend?utm_source=chatgpt.com)
 
 ---
 
-# 👨‍💻 Author
+## 👨‍💻 Author
 
 **Youssef Jmaiel**
 
@@ -385,6 +398,8 @@ Computer Science Engineer focused on:
 Java
 Spring Boot
 Microservices
+React
+TypeScript
 REST APIs
 Keycloak
 OAuth2 / JWT
@@ -394,6 +409,6 @@ Cloud Technologies
 
 ---
 
-# 📜 License
+## 📜 License
 
 This project is licensed under the MIT License.
