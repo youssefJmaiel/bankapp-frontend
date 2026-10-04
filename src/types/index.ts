@@ -47,12 +47,12 @@ export interface Message {
 
 export interface Partner {
   id: number;
-  name: string;
-  type?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  status?: string;
+  alias: string;
+  type: 'MESSAGE' | 'ALERTING' | 'NOTIFICATION';
+  direction: 'INBOUND' | 'OUTBOUND';
+  application?: string;
+  processedFlowType: 'MESSAGE' | 'ALERTING' | 'NOTIFICATION';
+  description: string;
 }
 
 export interface PageResponse<T> {

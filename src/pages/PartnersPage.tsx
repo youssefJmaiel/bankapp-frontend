@@ -20,7 +20,7 @@ export function PartnersPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [form, setForm] = useState<Partial<Partner>>({ name: '', type: '', email: '', phone: '', address: '', status: 'ACTIVE' });
+  const [form, setForm] = useState<Partial<Partner>>({ alias: '', type: 'MESSAGE', direction: 'OUTBOUND', application: 'BankApp', processedFlowType: 'MESSAGE', description: '' });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -35,11 +35,11 @@ export function PartnersPage() {
 
   const filtered = partners.filter((p) => {
     const q = search.toLowerCase();
-    return p.name?.toLowerCase().includes(q) || p.type?.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q);
+    return p.alias?.toLowerCase().includes(q) || p.type?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q);
   });
 
   const openCreate = () => {
-    setForm({ name: '', type: '', email: '', phone: '', address: '', status: 'ACTIVE' });
+    setForm({ alias: '', type: 'MESSAGE', direction: 'OUTBOUND', application: 'BankApp', processedFlowType: 'MESSAGE', description: '' });
     setFormError(null);
     setModalOpen(true);
   };
@@ -103,12 +103,12 @@ export function PartnersPage() {
                     <Handshake className="w-5 h-5 text-mint-600" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-navy-900">{p.name}</h3>
+                    <h3 className="font-bold text-navy-900">{p.alias}</h3>
                     {p.type && <p className="text-xs text-navy-400 mt-0.5">{p.type}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <StatusBadge status={p.status} />
+                  <StatusBadge status={p.direction} />
                   <button onClick={() => setDeleteTarget(p)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -116,14 +116,14 @@ export function PartnersPage() {
               </div>
 
               <div className="space-y-2 text-sm text-navy-500">
-                {p.email && (
-                  <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-navy-300" /><span className="truncate">{p.email}</span></div>
+                {p.application && (
+                  <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-navy-300" /><span className="truncate">{p.application}</span></div>
                 )}
-                {p.phone && (
-                  <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-navy-300" /><span>{p.phone}</span></div>
+                {p.direction && (
+                  <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-navy-300" /><span>{p.direction}</span></div>
                 )}
-                {p.address && (
-                  <div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-navy-300 mt-0.5" /><span className="line-clamp-2">{p.address}</span></div>
+                {p.description && (
+                  <div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-navy-300 mt-0.5" /><span className="line-clamp-2">{p.description}</span></div>
                 )}
               </div>
             </div>
@@ -138,7 +138,7 @@ export function PartnersPage() {
         footer={
           <>
             <button onClick={() => setModalOpen(false)} className="btn-secondary" disabled={formLoading}>Cancel</button>
-            <button onClick={handleSubmit} className="btn-primary" disabled={formLoading || !form.name}>
+            <button onClick={handleSubmit} className="btn-primary" disabled={formLoading || !form.alias || !form.description}>
               {formLoading ? 'Creating…' : 'Create'}
             </button>
           </>
@@ -147,35 +147,74 @@ export function PartnersPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg">{formError}</div>}
           <div>
-            <label className="label-field">Partner Name *</label>
-            <input className="input-field" value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            <label className="label-field">Partner Alias *</label>
+            <input
+              className="input-field"
+              value={form.alias ?? ''}
+              onChange={(e) => setForm({ ...form, alias: e.target.value })}
+              required
+            />
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label-field">Type</label>
-              <input className="input-field" value={form.type ?? ''} onChange={(e) => setForm({ ...form, type: e.target.value })} placeholder="Bank / Fintech / Regulator" />
+              <label className="label-field">Type *</label>
+              <select
+                className="input-field"
+                value={form.type ?? 'MESSAGE'}
+                onChange={(e) => setForm({ ...form, type: e.target.value as Partner['type'] })}
+              >
+                <option value="MESSAGE">Message</option>
+                <option value="ALERTING">Alerting</option>
+                <option value="NOTIFICATION">Notification</option>
+              </select>
             </div>
+
             <div>
-              <label className="label-field">Status</label>
-              <select className="input-field" value={form.status ?? 'ACTIVE'} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
+              <label className="label-field">Direction *</label>
+              <select
+                className="input-field"
+                value={form.direction ?? 'OUTBOUND'}
+                onChange={(e) => setForm({ ...form, direction: e.target.value as Partner['direction'] })}
+              >
+                <option value="INBOUND">Inbound</option>
+                <option value="OUTBOUND">Outbound</option>
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label-field">Email</label>
-              <input type="email" className="input-field" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <div>
-              <label className="label-field">Phone</label>
-              <input className="input-field" value={form.phone ?? ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            </div>
-          </div>
+
           <div>
-            <label className="label-field">Address</label>
-            <textarea className="input-field min-h-[60px] resize-y" value={form.address ?? ''} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            <label className="label-field">Application</label>
+            <input
+              className="input-field"
+              value={form.application ?? ''}
+              onChange={(e) => setForm({ ...form, application: e.target.value })}
+              placeholder="BankApp"
+            />
+          </div>
+
+          <div>
+            <label className="label-field">Processed Flow Type *</label>
+            <select
+              className="input-field"
+              value={form.processedFlowType ?? 'MESSAGE'}
+              onChange={(e) => setForm({ ...form, processedFlowType: e.target.value as Partner['processedFlowType'] })}
+            >
+              <option value="MESSAGE">Message</option>
+              <option value="ALERTING">Alerting</option>
+              <option value="NOTIFICATION">Notification</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="label-field">Description *</label>
+            <textarea
+              className="input-field min-h-[80px] resize-y"
+              value={form.description ?? ''}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Describe this partner..."
+              required
+            />
           </div>
         </form>
       </Modal>
