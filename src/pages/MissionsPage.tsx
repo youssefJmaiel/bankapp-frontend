@@ -9,9 +9,11 @@ import { ApiStateHandler } from '@/components/ApiState';
 import { StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/hooks/useAuth';
 import type { Mission, Employee } from '@/types';
+import { isAdmin } from '@/lib/permissions';
 
 export function MissionsPage() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const admin = isAdmin(user?.roles ?? []);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,8 +112,8 @@ export function MissionsPage() {
       <PageHeader
         title="Missions"
         subtitle="Operational tasks and assignments"
-        onAdd={openCreate}
-        addLabel="Add Mission"
+        onAdd={admin ? openCreate : undefined}
+        addLabel={admin ? 'Add Mission' : undefined}
         search={search}
         onSearchChange={setSearch}
       />
@@ -141,12 +143,16 @@ export function MissionsPage() {
                 </div>
                 <div className="flex gap-1">
                   <div className="mr-2"><StatusBadge status={m.status} /></div>
-                  <button onClick={() => openEdit(m)} className="p-2 text-navy-400 hover:bg-navy-100 hover:text-navy-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setDeleteTarget(m)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {admin && (
+                    <>
+                      <button onClick={() => openEdit(m)} className="p-2 text-navy-400 hover:bg-navy-100 hover:text-navy-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => setDeleteTarget(m)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 

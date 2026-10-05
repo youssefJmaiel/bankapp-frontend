@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, Building2, Target, MessageSquare, Handshake, X } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { isAdmin } from '@/lib/permissions';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -11,6 +13,13 @@ const navItems = [
 ];
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { user } = useAuth();
+  const admin = isAdmin(user?.roles ?? []);
+
+  const visibleNavItems = navItems.filter(
+    (item) => item.to !== '/messages' || admin
+  );
+
   return (
     <>
       {open && (
@@ -39,7 +48,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
           <p className="px-3 text-[10px] font-semibold text-navy-500 uppercase tracking-wider mb-2">Menu</p>
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

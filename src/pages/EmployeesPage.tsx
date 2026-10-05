@@ -8,9 +8,11 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ApiStateHandler } from '@/components/ApiState';
 import { useAuth } from '@/hooks/useAuth';
 import type { Employee, Department } from '@/types';
+import { isAdmin } from '@/lib/permissions';
 
 export function EmployeesPage() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const admin = isAdmin(user?.roles ?? []);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,8 +124,8 @@ const created = await createEmployee(employeeData);
       <PageHeader
         title="Employees"
         subtitle="Manage your workforce records"
-        onAdd={openCreate}
-        addLabel="Add Employee"
+        onAdd={admin ? openCreate : undefined}
+        addLabel={admin ? 'Add Employee' : undefined}
         search={search}
         onSearchChange={setSearch}
       />
@@ -147,7 +149,9 @@ const created = await createEmployee(employeeData);
                   <th className="px-5 py-3 text-left font-semibold">Contact</th>
                   <th className="px-5 py-3 text-left font-semibold">Position</th>
                   <th className="px-5 py-3 text-left font-semibold">Department</th>
-                  <th className="px-5 py-3 text-right font-semibold">Actions</th>
+                  {admin && (
+                    <th className="px-5 py-3 text-right font-semibold">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-navy-50">
@@ -175,14 +179,16 @@ const created = await createEmployee(employeeData);
                     </td>
                     <td className="px-5 py-3.5 text-sm text-navy-600">{deptName(emp.departmentId)}</td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(emp)} className="p-2 text-navy-400 hover:bg-navy-100 hover:text-navy-700 rounded-lg transition-colors" title="Edit">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => setDeleteTarget(emp)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors" title="Delete">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {admin && (
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => openEdit(emp)} className="p-2 text-navy-400 hover:bg-navy-100 hover:text-navy-700 rounded-lg transition-colors" title="Edit">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => setDeleteTarget(emp)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

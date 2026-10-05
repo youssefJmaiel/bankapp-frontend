@@ -7,11 +7,13 @@ import { getMissions } from '@/api/missions';
 import { getPartners } from '@/api/partners';
 import { getMessages } from '@/api/messages';
 import { useAuth } from '@/hooks/useAuth';
+import { isAdmin } from '@/lib/permissions';
 import { LoadingState, ErrorState } from '@/components/ApiState';
 import type { DashboardStats } from '@/types';
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const admin = isAdmin(user?.roles ?? []);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export function DashboardPage() {
       getDepartments().catch(() => null),
       getMissions().catch(() => null),
       getPartners().catch(() => null),
-      getMessages().catch(() => null),
+      admin ? getMessages().catch(() => null) : Promise.resolve(null),
     ])
       .then(([employees, departments, missions, partners, messages]) => {
         const empCount = employees ? Array.isArray(employees) ? employees.length : 0 : null;
@@ -46,7 +48,11 @@ export function DashboardPage() {
           processedMessages: processedCount ?? 0,
         });
 
-        const allFailed = [employees, departments, missions, partners, messages].every((v) => v === null);
+        const dashboardData = admin
+          ? [employees, departments, missions, partners, messages]
+          : [employees, departments, missions, partners];
+
+        const allFailed = dashboardData.every((v) => v === null);
         if (allFailed) {
           setError('Unable to load dashboard data. Check that the API Gateway is running.');
         }
@@ -56,7 +62,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [admin]);
 
   if (loading) return <LoadingState message="Loading dashboard…" />;
   if (error && !stats) return <ErrorState message={error} onRetry={load} />;

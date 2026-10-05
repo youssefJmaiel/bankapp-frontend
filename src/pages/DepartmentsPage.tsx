@@ -7,9 +7,11 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ApiStateHandler } from '@/components/ApiState';
 import { useAuth } from '@/hooks/useAuth';
 import type { Department } from '@/types';
+import { isAdmin } from '@/lib/permissions';
 
 export function DepartmentsPage() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const admin = isAdmin(user?.roles ?? []);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
@@ -91,8 +93,8 @@ export function DepartmentsPage() {
       <PageHeader
         title="Departments"
         subtitle="Organizational units and teams"
-        onAdd={openCreate}
-        addLabel="Add Department"
+        onAdd={admin ? openCreate : undefined}
+        addLabel={admin ? 'Add Department' : undefined}
         search={search}
         onSearchChange={setSearch}
       />
@@ -114,14 +116,16 @@ export function DepartmentsPage() {
                 <div className="w-11 h-11 rounded-xl bg-navy-100 flex items-center justify-center">
                   <Building2 className="w-5 h-5 text-navy-600" />
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => openEdit(dept)} className="p-2 text-navy-400 hover:bg-navy-100 hover:text-navy-700 rounded-lg transition-colors">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setDeleteTarget(dept)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                {admin && (
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => openEdit(dept)} className="p-2 text-navy-400 hover:bg-navy-100 hover:text-navy-700 rounded-lg transition-colors">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setDeleteTarget(dept)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
               <h3 className="font-bold text-navy-900 text-base mb-1">{dept.name}</h3>
               {dept.code && <p className="text-xs text-navy-400 font-mono mb-2">{dept.code}</p>}

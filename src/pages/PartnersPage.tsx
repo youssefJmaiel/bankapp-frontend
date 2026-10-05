@@ -8,9 +8,11 @@ import { ApiStateHandler } from '@/components/ApiState';
 import { StatusBadge } from '@/components/Badges';
 import { useAuth } from '@/hooks/useAuth';
 import type { Partner } from '@/types';
+import { isAdmin } from '@/lib/permissions';
 
 export function PartnersPage() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const admin = isAdmin(user?.roles ?? []);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
@@ -78,8 +80,8 @@ export function PartnersPage() {
       <PageHeader
         title="Partners"
         subtitle="Banking partners and external organizations"
-        onAdd={openCreate}
-        addLabel="Add Partner"
+        onAdd={admin ? openCreate : undefined}
+        addLabel={admin ? 'Add Partner' : undefined}
         search={search}
         onSearchChange={setSearch}
       />
@@ -109,9 +111,11 @@ export function PartnersPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={p.direction} />
-                  <button onClick={() => setDeleteTarget(p)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {admin && (
+                    <button onClick={() => setDeleteTarget(p)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
