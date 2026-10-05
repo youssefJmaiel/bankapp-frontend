@@ -206,7 +206,7 @@ export function MissionsPage() {
               <label className="label-field">Assigned Employee</label>
               <select className="input-field" value={form.employeeId ?? ''} onChange={(e) => setForm({ ...form, employeeId: e.target.value ? Number(e.target.value) : undefined })}>
                 <option value="">—</option>
-                {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.fullName}</option>)}
+                {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>)}
               </select>
             </div>
             <div>

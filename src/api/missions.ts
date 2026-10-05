@@ -10,9 +10,17 @@ export async function getMission(id: number): Promise<Mission> {
 }
 
 export async function createMission(data: Partial<Mission>): Promise<Mission> {
+  const payload = {
+    title: data.title,
+    description: data.description,
+    startDate: data.startDate ? `${data.startDate}T00:00:00` : undefined,
+    endDate: data.endDate ? `${data.endDate}T00:00:00` : undefined,
+    assignedEmployeeId: data.employeeId,
+  };
+
   return apiRequest<Mission>('/api/missions', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
 }
 
