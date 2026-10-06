@@ -119,6 +119,7 @@ export function DashboardPage() {
       </div>
 
       {/* Messages + processing */}
+      {admin && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="card p-5 lg:col-span-2">
           <div className="flex items-center gap-2 mb-4">
@@ -169,8 +170,10 @@ export function DashboardPage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
+      </div>
+      )}
 
-        <div className="card p-5">
+      <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Activity className="w-5 h-5 text-navy-600" />
             <h2 className="text-lg font-bold text-navy-900">System Status</h2>
@@ -206,7 +209,6 @@ export function DashboardPage() {
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }
