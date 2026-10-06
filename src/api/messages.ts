@@ -5,6 +5,10 @@ export async function getMessages(): Promise<Message[]> {
   return apiRequest<Message[]>('/api/messages');
 }
 
+export async function getMyMessages(): Promise<Message[]> {
+  return apiRequest<Message[]>('/api/messages/my');
+}
+
 export async function getMessagesPaged(page = 0, size = 10): Promise<PageResponse<Message>> {
   return apiRequest<PageResponse<Message>>(`/api/messages/paged?page=${page}&size=${size}`);
 }

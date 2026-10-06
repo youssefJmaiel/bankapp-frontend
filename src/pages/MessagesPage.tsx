@@ -1,16 +1,18 @@
 import { useEffect, useState, useCallback } from 'react';
 import { MessageSquare, Send, Trash2, RefreshCw, CheckCircle2, Clock, Mail } from 'lucide-react';
-import { getMessages, sendMessage, deleteMessage } from '@/api/messages';
+import { getMessages, getMyMessages, sendMessage, deleteMessage } from '@/api/messages';
 import { PageHeader } from '@/components/PageHeader';
 import { Modal } from '@/components/Modal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ApiStateHandler } from '@/components/ApiState';
 import { ProcessedBadge } from '@/components/Badges';
 import { useAuth } from '@/hooks/useAuth';
+import { isAdmin } from '@/lib/permissions';
 import type { Message } from '@/types';
 
 export function MessagesPage() {
   const { login, user } = useAuth();
+  const admin = isAdmin(user?.roles ?? []);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
@@ -26,14 +28,16 @@ export function MessagesPage() {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    getMessages()
+    const request = admin ? getMessages() : getMyMessages();
+
+    request
       .then((data) => {
         setMessages(Array.isArray(data) ? data : []);
         setSendSuccess(false);
       })
       .catch((err) => setError(err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [admin]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -91,9 +95,8 @@ export function MessagesPage() {
     <div>
       <PageHeader
         title="Messages"
-        subtitle="IBM MQ banking message flow"
-        onAdd={openSend}
-        addLabel="Send Message"
+        subtitle={admin ? "IBM MQ banking message flow" : "Your banking messages"}
+        {...(admin ? { onAdd: openSend, addLabel: "Send Message" } : {})}
         search={search}
         onSearchChange={setSearch}
       />
@@ -161,9 +164,11 @@ export function MessagesPage() {
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setDeleteTarget(msg)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0">
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {admin && (
+                  <button onClick={() => setDeleteTarget(msg)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -171,7 +176,7 @@ export function MessagesPage() {
       </ApiStateHandler>
 
       {/* Send Message Modal */}
-      <Modal
+      {admin && <Modal
         open={sendModalOpen}
         title="Send Banking Message"
         onClose={() => { setSendModalOpen(false); setSendSuccess(false); }}
@@ -229,16 +234,16 @@ export function MessagesPage() {
             </div>
           </form>
         )}
-      </Modal>
+      </Modal>}
 
-      <ConfirmDialog
+      {admin && <ConfirmDialog
         open={!!deleteTarget}
         title="Delete Message"
         message={`Are you sure you want to delete message #${deleteTarget?.id}? This action cannot be undone.`}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
         loading={deleteLoading}
-      />
+      />}
     </div>
   );
 }
