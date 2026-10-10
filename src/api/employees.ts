@@ -26,3 +26,13 @@ export async function updateEmployee(id: number, data: Partial<Employee>): Promi
 export async function deleteEmployee(id: number): Promise<void> {
   await apiRequest<void>(`/api/employees/${id}`, { method: 'DELETE' });
 }
+
+export async function getArchivedEmployees(): Promise<Employee[]> {
+  return apiRequest<Employee[]>('/api/employees/archived');
+}
+
+export async function restoreEmployee(id: number): Promise<Employee> {
+  return apiRequest<Employee>(`/api/employees/${id}/restore`, {
+    method: 'POST',
+  });
+}

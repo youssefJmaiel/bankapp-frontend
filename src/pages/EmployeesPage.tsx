@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Users, Phone, Briefcase, Edit2, Trash2 } from 'lucide-react';
-import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from '@/api/employees';
+import { Users, Phone, Briefcase, Edit2, Archive, RotateCcw } from 'lucide-react';
+import { getEmployees, getArchivedEmployees, createEmployee, updateEmployee, deleteEmployee, restoreEmployee } from '@/api/employees';
 import { getDepartments } from '@/api/departments';
 import { PageHeader } from '@/components/PageHeader';
 import { Modal } from '@/components/Modal';
@@ -14,6 +14,8 @@ export function EmployeesPage() {
   const { login, user } = useAuth();
   const admin = isAdmin(user?.roles ?? []);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [archivedEmployees, setArchivedEmployees] = useState<Employee[]>([]);
+  const [activeView, setActiveView] = useState<'active' | 'archived'>('active');
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
@@ -53,7 +55,8 @@ export function EmployeesPage() {
     load();
   }, [load]);
 
-  const filtered = employees.filter((e) => {
+  const currentEmployees = activeView === 'active' ? employees : archivedEmployees;
+  const filtered = currentEmployees.filter((e) => {
     const q = search.toLowerCase();
     return (
       `${e.firstName ?? ''} ${e.lastName ?? ''}`.toLowerCase().includes(q) ||
@@ -61,6 +64,35 @@ export function EmployeesPage() {
       e.position?.toLowerCase().includes(q)
     );
   });
+
+  const showArchived = async () => {
+    setActiveView('archived');
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getArchivedEmployees();
+      setArchivedEmployees(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showActive = () => {
+    setActiveView('active');
+    load();
+  };
+
+  const handleRestore = async (emp: Employee) => {
+    try {
+      const restored = await restoreEmployee(emp.id);
+      setArchivedEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+      setEmployees((prev) => [...prev.filter((e) => e.id !== emp.id), restored]);
+    } catch (err) {
+      setError(err);
+    }
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -129,6 +161,25 @@ export function EmployeesPage() {
         onSearchChange={setSearch}
       />
 
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={showActive}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeView === 'active' ? 'bg-navy-900 text-white' : 'bg-navy-50 text-navy-600 hover:bg-navy-100'}`}
+        >
+          Active employees ({employees.length})
+        </button>
+        {admin && (
+          <button
+            type="button"
+            onClick={showArchived}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeView === 'archived' ? 'bg-navy-900 text-white' : 'bg-navy-50 text-navy-600 hover:bg-navy-100'}`}
+          >
+            Archived ({archivedEmployees.length})
+          </button>
+        )}
+      </div>
+
       <ApiStateHandler
         loading={loading}
         error={error}
@@ -136,8 +187,8 @@ export function EmployeesPage() {
         hasData={filtered.length > 0}
         onRetry={load}
         onLogin={login}
-        emptyTitle={search ? "No matching employees" : "No employees yet"}
-        emptyMessage={search ? "Try a different search term." : "Add your first employee to get started."}
+        emptyTitle={search ? "No matching employees" : activeView === 'archived' ? "No archived employees" : "No employees yet"}
+        emptyMessage={search ? "Try a different search term." : activeView === 'archived' ? "Archived employee records will appear here." : "Add your first employee to get started."}
       >
         <div className="card overflow-hidden">
           <div className="overflow-x-auto scrollbar-thin">
@@ -201,12 +252,20 @@ export function EmployeesPage() {
                     <td className="px-5 py-3.5">
                       {admin && (
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openEdit(emp)} className="p-2 text-navy-400 hover:bg-navy-100 hover:text-navy-700 rounded-lg transition-colors" title="Edit">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => setDeleteTarget(emp)} className="p-2 text-red-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors" title="Delete">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {activeView === 'active' ? (
+                            <>
+                              <button onClick={() => openEdit(emp)} className="p-2 text-navy-400 hover:bg-navy-100 hover:text-navy-700 rounded-lg transition-colors" title="Edit">
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => setDeleteTarget(emp)} className="p-2 text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg transition-colors" title="Archive employee">
+                                <Archive className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <button onClick={() => handleRestore(emp)} className="p-2 text-green-600 hover:bg-green-50 hover:text-green-700 rounded-lg transition-colors" title="Restore employee">
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -289,8 +348,8 @@ export function EmployeesPage() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete Employee"
-        message={`Are you sure you want to delete ${`${deleteTarget?.firstName ?? ''} ${deleteTarget?.lastName ?? ''}`.trim()}? This action cannot be undone.`}
+        title="Archive Employee"
+        message={`Archive ${`${deleteTarget?.firstName ?? ''} ${deleteTarget?.lastName ?? ''}`.trim()}? The employee record will be kept and can be restored later.`}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
         loading={deleteLoading}
