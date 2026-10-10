@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Users, Mail, Phone, Briefcase, Edit2, Trash2 } from 'lucide-react';
+import { Users, Phone, Briefcase, Edit2, Trash2 } from 'lucide-react';
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from '@/api/employees';
 import { getDepartments } from '@/api/departments';
 import { PageHeader } from '@/components/PageHeader';
@@ -26,7 +26,8 @@ export function EmployeesPage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const [form, setForm] = useState<Partial<Employee>>({
-    fullName: '',
+    firstName: '',
+  lastName: '',
     email: '',
     phone: '',
     position: '',
@@ -55,7 +56,7 @@ export function EmployeesPage() {
   const filtered = employees.filter((e) => {
     const q = search.toLowerCase();
     return (
-      e.fullName?.toLowerCase().includes(q) ||
+      `${e.firstName ?? ''} ${e.lastName ?? ''}`.toLowerCase().includes(q) ||
       e.email?.toLowerCase().includes(q) ||
       e.position?.toLowerCase().includes(q)
     );
@@ -63,7 +64,7 @@ export function EmployeesPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ fullName: '', email: '', phone: '', position: '', departmentId: undefined, hireDate: '', salary: undefined, status: 'ACTIVE' });
+    setForm({ firstName: '', lastName: '', email: '', phone: '', position: '', departmentId: undefined, hireDate: '', salary: undefined, status: 'ACTIVE' });
     setFormError(null);
     setModalOpen(true);
   };
@@ -84,15 +85,13 @@ export function EmployeesPage() {
         const updated = await updateEmployee(editing.id, form);
         setEmployees((prev) => prev.map((e) => (e.id === editing.id ? updated : e)));
       } else {
-        const parts = form.fullName.trim().split(' ');
-
-const employeeData = {
-  firstName: parts[0],
-  lastName: parts.slice(1).join(' '),
-  email: form.email
-};
-
-const created = await createEmployee(employeeData);
+        const employeeData: Partial<Employee> = {
+        ...form,
+        firstName: form.firstName?.trim() ?? '',
+        lastName: form.lastName?.trim() ?? '',
+        email: form.email?.trim() ?? '',
+      };
+      const created = await createEmployee(employeeData);
         setEmployees((prev) => [...prev, created]);
       }
       setModalOpen(false);
@@ -149,6 +148,9 @@ const created = await createEmployee(employeeData);
                   <th className="px-5 py-3 text-left font-semibold">Contact</th>
                   <th className="px-5 py-3 text-left font-semibold">Position</th>
                   <th className="px-5 py-3 text-left font-semibold">Department</th>
+                  <th className="px-5 py-3 text-left font-semibold">Hire Date</th>
+                  <th className="px-5 py-3 text-right font-semibold">Salary</th>
+                  <th className="px-5 py-3 text-left font-semibold">Status</th>
                   {admin && (
                     <th className="px-5 py-3 text-right font-semibold">Actions</th>
                   )}
@@ -160,24 +162,42 @@ const created = await createEmployee(employeeData);
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-navy-900 text-mint-400 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                          {emp.fullName?.charAt(0)?.toUpperCase() ?? '?'}
+                          {emp.firstName?.charAt(0)?.toUpperCase() ?? '?'}
                         </div>
                         <div>
-                          <p className="font-semibold text-navy-800 text-sm">{emp.fullName}</p>
+                          <p className="font-semibold text-navy-800 text-sm">{`${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim()}</p>
                           <p className="text-xs text-navy-400">ID: {emp.id}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex flex-col gap-0.5 text-sm">
-                        {emp.email && <span className="flex items-center gap-1.5 text-navy-600"><Mail className="w-3.5 h-3.5 text-navy-300" />{emp.email}</span>}
-                        {emp.phone && <span className="flex items-center gap-1.5 text-navy-400 text-xs"><Phone className="w-3.5 h-3.5" />{emp.phone}</span>}
-                      </div>
+                    <td className="px-5 py-3.5 text-sm text-navy-600">
+                      <span className="flex items-center gap-1.5">
+                        {emp.phone ? (
+                          <><Phone className="w-3.5 h-3.5 text-navy-300" />{emp.phone}</>
+                        ) : '—'}
+                      </span>
                     </td>
                     <td className="px-5 py-3.5 text-sm text-navy-600">
                       <span className="flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5 text-navy-300" />{emp.position || '—'}</span>
                     </td>
                     <td className="px-5 py-3.5 text-sm text-navy-600">{deptName(emp.departmentId)}</td>
+                    <td className="px-5 py-3.5 text-sm text-navy-600">{emp.hireDate || '—'}</td>
+                    <td className="px-5 py-3.5 text-sm text-right text-navy-600">
+                      {emp.salary != null ? emp.salary.toLocaleString() : '—'}
+                    </td>
+                    <td className="px-5 py-3.5 text-sm">
+                      {emp.status ? (
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          emp.status === 'ACTIVE'
+                            ? 'bg-green-50 text-green-700'
+                            : emp.status === 'INACTIVE'
+                              ? 'bg-red-50 text-red-700'
+                              : 'bg-amber-50 text-amber-700'
+                        }`}>
+                          {emp.status}
+                        </span>
+                      ) : '—'}
+                    </td>
                     <td className="px-5 py-3.5">
                       {admin && (
                         <div className="flex items-center justify-end gap-1">
@@ -205,7 +225,7 @@ const created = await createEmployee(employeeData);
         footer={
           <>
             <button onClick={() => setModalOpen(false)} className="btn-secondary" disabled={formLoading}>Cancel</button>
-            <button onClick={handleSubmit} className="btn-primary" disabled={formLoading || !form.fullName || !form.email}>
+            <button onClick={handleSubmit} className="btn-primary" disabled={formLoading || !form.firstName?.trim() || !form.lastName?.trim() || !form.email?.trim()}>
               {formLoading ? 'Saving…' : editing ? 'Update' : 'Create'}
             </button>
           </>
@@ -213,9 +233,15 @@ const created = await createEmployee(employeeData);
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg">{formError}</div>}
-          <div>
-            <label className="label-field">Full Name *</label>
-            <input className="input-field" value={form.fullName ?? ''} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label-field">First Name *</label>
+              <input className="input-field" value={form.firstName ?? ''} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label-field">Last Name *</label>
+              <input className="input-field" value={form.lastName ?? ''} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -264,7 +290,7 @@ const created = await createEmployee(employeeData);
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete Employee"
-        message={`Are you sure you want to delete ${deleteTarget?.fullName}? This action cannot be undone.`}
+        message={`Are you sure you want to delete ${`${deleteTarget?.firstName ?? ''} ${deleteTarget?.lastName ?? ''}`.trim()}? This action cannot be undone.`}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
         loading={deleteLoading}
