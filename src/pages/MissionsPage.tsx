@@ -105,7 +105,10 @@ export function MissionsPage() {
     }
   };
 
-  const employeeName = (id?: number) => employees.find((e) => e.id === id)?.fullName ?? '—';
+  const employeeName = (id?: number) => {
+    const employee = employees.find((e) => e.id === id);
+    return employee ? `${employee.firstName ?? ''} ${employee.lastName ?? ''}`.trim() || '—' : '—';
+  };
 
   return (
     <div>
@@ -279,10 +282,10 @@ export function MissionsPage() {
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-navy-900 text-mint-400 flex items-center justify-center font-bold">
-                {viewEmployee.employee.fullName?.charAt(0)?.toUpperCase()}
+                {viewEmployee.employee.firstName?.charAt(0)?.toUpperCase() ?? '?'}
               </div>
               <div>
-                <p className="font-semibold text-navy-900">{viewEmployee.employee.fullName}</p>
+                <p className="font-semibold text-navy-900">{`${viewEmployee.employee.firstName ?? ''} ${viewEmployee.employee.lastName ?? ''}`.trim()}</p>
                 <p className="text-sm text-navy-400">{viewEmployee.employee.position || '—'}</p>
               </div>
             </div>

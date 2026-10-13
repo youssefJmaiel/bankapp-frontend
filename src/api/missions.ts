@@ -13,9 +13,13 @@ export async function createMission(data: Partial<Mission>): Promise<Mission> {
   const payload = {
     title: data.title,
     description: data.description,
+    assignedEmployeeId: data.employeeId,
+    location: data.location,
     startDate: data.startDate ? `${data.startDate}T00:00:00` : undefined,
     endDate: data.endDate ? `${data.endDate}T00:00:00` : undefined,
-    assignedEmployeeId: data.employeeId,
+    status: data.status || 'PENDING',
+    priority: data.priority || 'MEDIUM',
+    budget: data.budget,
   };
 
   return apiRequest<Mission>('/api/missions', {
@@ -25,9 +29,25 @@ export async function createMission(data: Partial<Mission>): Promise<Mission> {
 }
 
 export async function updateMission(id: number, data: Partial<Mission>): Promise<Mission> {
+  const payload = {
+    title: data.title,
+    description: data.description,
+    assignedEmployeeId: data.employeeId,
+    location: data.location,
+    startDate: data.startDate
+      ? (data.startDate.length === 10 ? `${data.startDate}T00:00:00` : data.startDate)
+      : undefined,
+    endDate: data.endDate
+      ? (data.endDate.length === 10 ? `${data.endDate}T00:00:00` : data.endDate)
+      : undefined,
+    status: data.status,
+    priority: data.priority,
+    budget: data.budget,
+  };
+
   return apiRequest<Mission>(`/api/missions/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
 }
 

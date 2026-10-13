@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Handshake, Trash2, Mail, Phone, MapPin, Plus } from 'lucide-react';
+import { Handshake, Trash2, Mail, Phone, MapPin } from 'lucide-react';
 import { getPartners, createPartner, deletePartner } from '@/api/partners';
 import { PageHeader } from '@/components/PageHeader';
 import { Modal } from '@/components/Modal';
@@ -226,7 +226,7 @@ export function PartnersPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete Partner"
-        message={`Are you sure you want to delete ${deleteTarget?.name}? This action cannot be undone.`}
+        message={`Are you sure you want to delete ${deleteTarget?.alias}? This action cannot be undone.`}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
         loading={deleteLoading}

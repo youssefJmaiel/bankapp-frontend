@@ -9,6 +9,7 @@ import { DepartmentsPage } from '@/pages/DepartmentsPage';
 import { MissionsPage } from '@/pages/MissionsPage';
 import { MessagesPage } from '@/pages/MessagesPage';
 import { PartnersPage } from '@/pages/PartnersPage';
+import { PaymentsPage } from '@/pages/PaymentsPage';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/missions" element={<MissionsPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/partners" element={<PartnersPage />} />
+            <Route path="/payments" element={<PaymentsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import { initAuth, login as kcLogin, logout as kcLogout, isAuthenticated, getCurrentUser, type AuthUserInfo } from '@/api/auth';
+import { initAuth, login as kcLogin, logout as kcLogout, getCurrentUser, type AuthUserInfo } from '@/api/auth';
 
 type AuthStatus = 'initializing' | 'authenticated' | 'unauthenticated';
 

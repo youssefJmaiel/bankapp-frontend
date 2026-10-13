@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, Target, MessageSquare, Handshake, X } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, Target, MessageSquare, Handshake, CreditCard, X } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/missions', label: 'Missions', icon: Target },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
   { to: '/partners', label: 'Partners', icon: Handshake },
+  { to: '/payments', label: 'Payments', icon: CreditCard },
 ];
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {

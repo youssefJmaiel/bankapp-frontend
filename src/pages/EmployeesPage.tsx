@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Users, Phone, Briefcase, Edit2, Archive, RotateCcw } from 'lucide-react';
+import { Phone, Briefcase, Edit2, Archive, RotateCcw } from 'lucide-react';
 import { getEmployees, getArchivedEmployees, createEmployee, updateEmployee, deleteEmployee, restoreEmployee } from '@/api/employees';
 import { getDepartments } from '@/api/departments';
 import { PageHeader } from '@/components/PageHeader';
