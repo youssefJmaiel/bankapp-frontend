@@ -19,7 +19,9 @@ import {
   createPayment,
   getAccountByNumber,
   getMyAccounts,
+  getMyPayments,
   type Account,
+  type PaymentHistoryItem,
 } from '@/api/payments';
 
 const fieldClass =
@@ -54,6 +56,25 @@ export function PaymentsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [paymentReference, setPaymentReference] = useState('');
+  const [payments, setPayments] = useState<PaymentHistoryItem[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [paymentsError, setPaymentsError] = useState('');
+
+  async function loadPayments() {
+    setPaymentsLoading(true);
+    setPaymentsError('');
+
+    try {
+      const data = await getMyPayments();
+      setPayments(Array.isArray(data) ? data : []);
+    } catch {
+      setPaymentsError(
+        'We could not load your transaction history. Please try again.',
+      );
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }
 
   async function loadAccounts() {
     setAccountsLoading(true);
@@ -73,6 +94,7 @@ export function PaymentsPage() {
 
   useEffect(() => {
     void loadAccounts();
+    void loadPayments();
   }, []);
 
   const activeAccounts = useMemo(
@@ -169,7 +191,7 @@ export function PaymentsPage() {
       setSuccess('Your transfer has been completed successfully.');
       setDestinationDigits('');
       setAmount('');
-      await loadAccounts();
+      await Promise.all([loadAccounts(), loadPayments()]);
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -655,6 +677,128 @@ export function PaymentsPage() {
           </div>
         </aside>
       </div>
+
+      {/* Transaction history */}
+      <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">
+              Your activity
+            </p>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">
+              Transaction History
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Review the transfers associated with your account.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadPayments()}
+            disabled={paymentsLoading}
+            className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
+          >
+            <RefreshCw size={15} className={paymentsLoading ? 'animate-spin' : ''} />
+            Refresh history
+          </button>
+        </div>
+
+        <div className="p-5 sm:p-7">
+          {paymentsError ? (
+            <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 sm:flex-row sm:items-center sm:justify-between">
+              <p>{paymentsError}</p>
+              <button
+                type="button"
+                onClick={() => void loadPayments()}
+                className="font-bold underline underline-offset-2"
+              >
+                Try again
+              </button>
+            </div>
+          ) : paymentsLoading && payments.length === 0 ? (
+            <div className="flex items-center justify-center gap-3 rounded-2xl bg-slate-50 p-10 text-sm text-slate-500">
+              <RefreshCw size={17} className="animate-spin" />
+              Loading your transactions...
+            </div>
+          ) : payments.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-10 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <ArrowLeftRight size={22} />
+              </div>
+              <h3 className="mt-4 text-sm font-bold text-slate-900">
+                No transactions yet
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Completed transfers will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                    <th className="px-3 py-3">Transaction</th>
+                    <th className="px-3 py-3">Accounts</th>
+                    <th className="px-3 py-3 text-right">Amount</th>
+                    <th className="px-3 py-3">Status</th>
+                    <th className="px-3 py-3">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payments.map((payment) => {
+                    const status = (payment.status || 'UNKNOWN').toUpperCase();
+                    const statusClass =
+                      status === 'COMPLETED'
+                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/15'
+                        : status === 'FAILED'
+                          ? 'bg-red-50 text-red-700 ring-red-600/15'
+                          : 'bg-amber-50 text-amber-700 ring-amber-600/15';
+
+                    const formattedDate = payment.createdAt
+                      ? new Date(payment.createdAt).toLocaleString()
+                      : '—';
+
+                    return (
+                      <tr key={payment.id} className="transition hover:bg-slate-50/70">
+                        <td className="px-3 py-4">
+                          <p className="text-sm font-semibold text-slate-900">
+                            Transfer #{payment.id}
+                          </p>
+                          <p className="mt-1 max-w-[190px] break-all text-xs text-slate-500">
+                            {payment.reference || 'No reference'}
+                          </p>
+                        </td>
+                        <td className="px-3 py-4">
+                          <p className="text-xs text-slate-500">From: #{payment.sourceAccountId}</p>
+                          <p className="mt-1 text-xs text-slate-500">To: #{payment.destinationAccountId}</p>
+                        </td>
+                        <td className="px-3 py-4 text-right">
+                          <span className="whitespace-nowrap text-sm font-bold text-slate-900">
+                            {formatMoney(payment.amount, payment.currency || 'TND')}
+                          </span>
+                        </td>
+                        <td className="px-3 py-4">
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ring-1 ring-inset ${statusClass}`}>
+                            {status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-4 text-xs text-slate-500">
+                          {formattedDate}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {!paymentsError && payments.length > 0 && (
+            <p className="mt-4 text-xs text-slate-400">
+              Showing {payments.length} transaction{payments.length === 1 ? '' : 's'}.
+            </p>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

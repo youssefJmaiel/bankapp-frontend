@@ -42,3 +42,20 @@ export async function getAccountByNumber(accountNumber: string): Promise<Account
     `/api/accounts/number/${encodeURIComponent(accountNumber)}`
   );
 }
+
+export interface PaymentHistoryItem {
+  id: number;
+  sourceAccountId: number;
+  destinationAccountId: number;
+  amount: number | string;
+  currency: string;
+  reference: string;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export async function getMyPayments(): Promise<PaymentHistoryItem[]> {
+  return apiRequest<PaymentHistoryItem[]>('/api/payments/my');
+}
+
