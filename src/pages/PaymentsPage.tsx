@@ -102,6 +102,32 @@ export function PaymentsPage() {
     [accounts],
   );
 
+  const paymentStats = useMemo(() => {
+    const completedPayments = payments.filter(
+      (payment) => (payment.status || '').toUpperCase() === 'COMPLETED',
+    );
+
+    const totalsByCurrency = completedPayments.reduce<Record<string, number>>(
+      (totals, payment) => {
+        const paymentCurrency = payment.currency || 'TND';
+        const paymentAmount = Number(payment.amount);
+
+        if (Number.isFinite(paymentAmount)) {
+          totals[paymentCurrency] = (totals[paymentCurrency] || 0) + paymentAmount;
+        }
+
+        return totals;
+      },
+      {},
+    );
+
+    return {
+      transactionCount: payments.length,
+      completedCount: completedPayments.length,
+      totalsByCurrency,
+    };
+  }, [payments]);
+
   const sourceAccount = activeAccounts.find(
     (account) => account.id === Number(sourceAccountId),
   );
@@ -704,6 +730,69 @@ export function PaymentsPage() {
         </div>
 
         <div className="p-5 sm:p-7">
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Total transactions
+                </p>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <ArrowLeftRight size={19} />
+                </span>
+              </div>
+              <p className="mt-4 text-3xl font-bold tracking-tight text-slate-950">
+                {paymentStats.transactionCount}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Transactions in your history
+              </p>
+            </article>
+
+            <article className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Successful payments
+                </p>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <CheckCircle2 size={19} />
+                </span>
+              </div>
+              <p className="mt-4 text-3xl font-bold tracking-tight text-slate-950">
+                {paymentStats.completedCount}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Completed transfers
+              </p>
+            </article>
+
+            <article className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/80 to-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Total transferred
+                </p>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+                  <Wallet size={19} />
+                </span>
+              </div>
+              <div className="mt-4 space-y-1">
+                {Object.entries(paymentStats.totalsByCurrency).length > 0 ? (
+                  Object.entries(paymentStats.totalsByCurrency).map(([code, total]) => (
+                    <p key={code} className="text-xl font-bold tracking-tight text-slate-950">
+                      {formatMoney(total, code)}
+                    </p>
+                  ))
+                ) : (
+                  <p className="text-2xl font-bold tracking-tight text-slate-950">
+                    {formatMoney(0, 'TND')}
+                  </p>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Completed transfers only
+              </p>
+            </article>
+          </div>
+
           {paymentsError ? (
             <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 sm:flex-row sm:items-center sm:justify-between">
               <p>{paymentsError}</p>
