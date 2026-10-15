@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, Target, MessageSquare, Handshake, CreditCard, CalendarDays, X } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, Target, MessageSquare, Handshake, CreditCard, CalendarDays, X, Bot } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/departments', label: 'Departments', icon: Building2 },
   { to: '/missions', label: 'Missions', icon: Target },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
+  { to: '/ai-assistant', label: 'AI Assistant', icon: Bot },
   { to: '/partners', label: 'Partners', icon: Handshake },
   { to: '/payments', label: 'Payments', icon: CreditCard },
   { to: '/leaves', label: 'Leave Management', icon: CalendarDays },

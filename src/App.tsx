@@ -11,6 +11,7 @@ import { MessagesPage } from '@/pages/MessagesPage';
 import { PartnersPage } from '@/pages/PartnersPage';
 import { PaymentsPage } from '@/pages/PaymentsPage';
 import { LeavesPage } from '@/pages/LeavesPage';
+import { AIChatPage } from '@/pages/AIChatPage';
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/partners" element={<PartnersPage />} />
             <Route path="/payments" element={<PaymentsPage />} />
             <Route path="/leaves" element={<LeavesPage />} />
+            <Route path="/ai-assistant" element={<AIChatPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
