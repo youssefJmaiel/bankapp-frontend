@@ -9,12 +9,22 @@ import {
   AlertCircle,
   Bot,
   Loader2,
+  MessageCircle,
+  FolderKanban,
+  History,
+  Settings2,
   Send,
   Sparkles,
   Trash2,
   UserRound,
 } from 'lucide-react';
-import { sendAIMessage } from '@/api/ai';
+import {
+  deleteAIConversation,
+  getAIConversation,
+  listAIConversations,
+  sendAIMessage,
+  type AIConversationSummary,
+} from '@/api/ai';
 
 interface ChatMessage {
   id: string;
@@ -58,6 +68,13 @@ function isArabic(text: string): boolean {
 
 export function AIChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [conversationId, setConversationId] = useState<number | null>(null);
+  const [conversations, setConversations] = useState<AIConversationSummary[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [activeTab, setActiveTab] = useState<
+    'chat' | 'you' | 'projects' | 'history' | 'settings'
+  >('chat');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -67,6 +84,97 @@ export function AIChatPage() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, loading, error]);
+
+  useEffect(() => {
+    if (activeTab !== 'history') return;
+
+    let cancelled = false;
+
+    async function loadHistory() {
+      setHistoryLoading(true);
+      setHistoryError('');
+
+      try {
+        const result = await listAIConversations();
+        if (!cancelled) setConversations(result);
+      } catch (cause) {
+        if (!cancelled) {
+          setHistoryError(
+            cause instanceof Error
+              ? cause.message
+              : 'Impossible de charger l’historique.',
+          );
+        }
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    }
+
+    void loadHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
+
+  async function openConversation(id: number) {
+    if (loading || historyLoading) return;
+
+    setHistoryLoading(true);
+    setHistoryError('');
+
+    try {
+      const conversation = await getAIConversation(id);
+      setConversationId(conversation.id);
+      setMessages(
+        conversation.messages.map((message) => ({
+          id: String(message.id),
+          role: message.role.toLowerCase() === 'user' ? 'user' : 'assistant',
+          content: message.content,
+        })),
+      );
+      setError('');
+      setInput('');
+      setActiveTab('chat');
+    } catch (cause) {
+      setHistoryError(
+        cause instanceof Error
+          ? cause.message
+          : 'Impossible d’ouvrir cette conversation.',
+      );
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  async function removeConversation(conversation: AIConversationSummary) {
+    const confirmed = window.confirm(
+      `Supprimer définitivement « ${conversation.title || 'Conversation'} » ?`,
+    );
+
+    if (!confirmed) return;
+
+    setHistoryError('');
+
+    try {
+      await deleteAIConversation(conversation.id);
+      setConversations((current) =>
+        current.filter((item) => item.id !== conversation.id),
+      );
+
+      if (conversationId === conversation.id) {
+        setConversationId(null);
+        setMessages([]);
+        setError('');
+      }
+    } catch (cause) {
+      setHistoryError(
+        cause instanceof Error
+          ? cause.message
+          : 'Impossible de supprimer cette conversation.',
+      );
+    }
+  }
 
   async function sendMessage(rawMessage: string) {
     const message = rawMessage.trim();
@@ -82,10 +190,11 @@ export function AIChatPage() {
     setLoading(true);
 
     try {
-      const reply = await sendAIMessage(message);
+      const response = await sendAIMessage(message, conversationId ?? undefined);
+      setConversationId(response.conversationId);
       setMessages((current) => [
         ...current,
-        createMessage('assistant', reply),
+        createMessage('assistant', response.reply),
       ]);
     } catch (cause) {
       setError(
@@ -113,6 +222,7 @@ export function AIChatPage() {
 
   function clearConversation() {
     if (loading) return;
+    setConversationId(null);
     setMessages([]);
     setError('');
     setInput('');
@@ -147,7 +257,40 @@ export function AIChatPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <nav
+        aria-label="AI assistant sections"
+        className="flex flex-wrap gap-1 rounded-xl border border-navy-100 bg-white p-2 shadow-sm"
+      >
+        {[
+          { id: 'chat', label: 'Chat', icon: MessageCircle },
+          { id: 'you', label: 'Vous', icon: UserRound },
+          { id: 'projects', label: 'Projets', icon: FolderKanban },
+          { id: 'history', label: 'Historique', icon: History },
+          { id: 'settings', label: 'Paramètres', icon: Settings2 },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const selected = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              aria-current={selected ? 'page' : undefined}
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                selected
+                  ? 'bg-navy-950 text-mint-400'
+                  : 'text-navy-600 hover:bg-navy-50 hover:text-navy-950'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      {activeTab === 'chat' && (
+<div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
         <section className="card min-w-0 overflow-hidden">
           <div className="flex items-center justify-between border-b border-navy-100 px-4 py-4 sm:px-5">
             <div className="flex min-w-0 items-center gap-3">
@@ -362,6 +505,229 @@ export function AIChatPage() {
           </div>
         </aside>
       </div>
+      )}
+
+      {activeTab === 'you' && (
+        <section className="card p-5 sm:p-7">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-mint-50 text-mint-700">
+              <UserRound className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-navy-950">Vous et vos finances</h2>
+              <p className="mt-1 text-sm text-navy-500">
+                Choisissez une question et continuez dans le chat.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { title: 'Mes comptes', prompt: 'What are my account balances?' },
+              { title: 'Mes virements', prompt: 'Show my recent transfers.' },
+              { title: 'Mes paiements', prompt: 'Summarize my recent payments.' },
+              { title: 'Paiements échoués', prompt: 'Which of my payments failed recently?' },
+              { title: 'Comparer deux mois', prompt: 'Compare mes paiements de septembre et octobre 2026.' },
+            ].map((item) => (
+              <button
+                key={item.title}
+                type="button"
+                onClick={() => {
+                  setActiveTab('chat');
+                  void sendMessage(item.prompt);
+                }}
+                disabled={loading}
+                className="rounded-xl border border-navy-100 p-4 text-left transition-colors hover:border-mint-300 hover:bg-mint-50/50 disabled:opacity-50"
+              >
+                <span className="block text-sm font-semibold text-navy-900">{item.title}</span>
+                <span className="mt-1 block text-xs leading-5 text-navy-500">{item.prompt}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-5 text-xs leading-5 text-navy-500">
+            Les données personnelles ne seront disponibles que si le backend
+            répond à la requête et que votre session est autorisée.
+          </p>
+        </section>
+      )}
+
+      {activeTab === 'projects' && (
+        <section className="card p-5 sm:p-7">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-mint-50 text-mint-700">
+              <FolderKanban className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-navy-950">Projets et technologie</h2>
+              <p className="mt-1 text-sm text-navy-500">
+                Explorez BankApp et les concepts de développement.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { title: 'Architecture', prompt: "Explain BankApp's microservices architecture." },
+              { title: 'Spring Boot', prompt: 'Explain the role of Spring Boot in a microservice.' },
+              { title: 'Sécurité', prompt: 'Explain how Keycloak and JWT can secure BankApp.' },
+              { title: 'Communication', prompt: 'Explain how API Gateway and service discovery work together.' },
+              { title: 'Service IA', prompt: 'Explain how an AI chat service can communicate with other BankApp services.' },
+            ].map((item) => (
+              <button
+                key={item.title}
+                type="button"
+                onClick={() => {
+                  setActiveTab('chat');
+                  void sendMessage(item.prompt);
+                }}
+                disabled={loading}
+                className="rounded-xl border border-navy-100 p-4 text-left transition-colors hover:border-mint-300 hover:bg-mint-50/50 disabled:opacity-50"
+              >
+                <span className="block text-sm font-semibold text-navy-900">{item.title}</span>
+                <span className="mt-1 block text-xs leading-5 text-navy-500">{item.prompt}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'history' && (
+        <section className="card p-5 sm:p-7">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-mint-50 text-mint-700">
+                <History className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-navy-950">Historique des conversations</h2>
+                <p className="mt-1 text-sm text-navy-500">
+                  Conversations enregistrées sur le serveur et associées à votre compte.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                clearConversation();
+                setActiveTab('chat');
+              }}
+              disabled={loading}
+              className="btn-ghost text-sm"
+            >
+              Nouvelle discussion
+            </button>
+          </div>
+
+          {historyError && (
+            <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {historyError}
+            </div>
+          )}
+
+          {historyLoading ? (
+            <div className="flex items-center gap-2 rounded-xl bg-navy-50 p-5 text-sm text-navy-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Chargement de l’historique…
+            </div>
+          ) : conversations.length === 0 ? (
+            <p className="rounded-xl bg-navy-50 p-5 text-sm text-navy-500">
+              Aucune conversation enregistrée. Envoyez un message dans l’onglet Chat pour commencer.
+            </p>
+          ) : (
+            <ol className="space-y-3">
+              {conversations.map((conversation) => (
+                <li
+                  key={conversation.id}
+                  className="flex flex-col gap-3 rounded-xl border border-navy-100 p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <button
+                    type="button"
+                    onClick={() => void openConversation(conversation.id)}
+                    className="min-w-0 flex-1 text-left hover:text-navy-950"
+                    disabled={historyLoading || loading}
+                  >
+                    <span className="block break-words text-sm font-semibold text-navy-900">
+                      {conversation.title || 'Nouvelle conversation'}
+                    </span>
+                    <span className="mt-1 block text-xs text-navy-500">
+                      {conversation.messageCount} message(s)
+                      {' · '}
+                      {conversation.updatedAt
+                        ? new Date(conversation.updatedAt).toLocaleString()
+                        : 'Date inconnue'}
+                    </span>
+                  </button>
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void openConversation(conversation.id)}
+                      disabled={historyLoading || loading}
+                      className="rounded-lg border border-navy-200 px-3 py-2 text-xs font-semibold text-navy-700 hover:bg-navy-50 disabled:opacity-50"
+                    >
+                      Ouvrir
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void removeConversation(conversation)}
+                      disabled={historyLoading}
+                      className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      aria-label={`Supprimer ${conversation.title || 'cette conversation'}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          <p className="mt-4 text-xs leading-5 text-navy-500">
+            L’historique est chargé depuis le backend. Vous pouvez rouvrir une conversation ou supprimer explicitement celle que vous ne souhaitez plus conserver.
+          </p>
+        </section>
+      )}
+
+      {activeTab === 'settings' && (
+        <section className="card p-5 sm:p-7">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-mint-50 text-mint-700">
+              <Settings2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-navy-950">Paramètres de l’assistant</h2>
+              <p className="mt-1 text-sm text-navy-500">
+                Informations et gestion de la conversation.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-navy-100 p-4">
+              <h3 className="text-sm font-semibold text-navy-900">Langue de réponse</h3>
+              <p className="mt-1 text-sm leading-5 text-navy-500">
+                L’assistant peut répondre en français, en anglais ou en arabe.
+                La langue est déterminée par le message ; aucun choix de langue
+                persistant n’est configuré dans cette interface.
+              </p>
+            </div>
+            <div className="rounded-xl border border-navy-100 p-4">
+              <h3 className="text-sm font-semibold text-navy-900">Conversation</h3>
+              <p className="mt-1 text-sm leading-5 text-navy-500">
+                Commencez une nouvelle discussion. Les conversations précédentes restent dans l’historique jusqu’à leur suppression explicite.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('chat');
+                  clearConversation();
+                }}
+                disabled={loading || messages.length === 0}
+                className="btn-ghost mt-3 gap-2 text-sm text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+                Nouvelle discussion
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
