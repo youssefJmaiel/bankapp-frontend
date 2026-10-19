@@ -32,3 +32,6 @@ dist-ssr
 *.bak
 *.bak-*
 backups/
+
+# Archived local backups
+*.archive-backup
