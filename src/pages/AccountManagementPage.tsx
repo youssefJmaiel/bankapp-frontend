@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import {
   createManagedAccount,
+  creditManagedAccount,
   getAccountsByOwner,
   getKeycloakUsers,
   type KeycloakUser,
@@ -66,6 +67,12 @@ export function AccountManagementPage() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
   const [success, setSuccess] = useState('');
+  const [creditModalOpen, setCreditModalOpen] = useState(false);
+  const [creditAccount, setCreditAccount] = useState<ManagedAccount | null>(null);
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditReference, setCreditReference] = useState('');
+  const [crediting, setCrediting] = useState(false);
+  const [creditError, setCreditError] = useState('');
 
   const selectedUser = users.find((user) => user.id === selectedId);
 
@@ -143,6 +150,53 @@ export function AccountManagementPage() {
       setCreateError(explainError(error, 'Account creation failed.'));
     } finally {
       setCreating(false);
+    }
+  }
+
+  function openCreditModal(account: ManagedAccount) {
+    setCreditAccount(account);
+    setCreditAmount('');
+    setCreditReference(`CREDIT_${Date.now()}`);
+    setCreditError('');
+    setSuccess('');
+    setCreditModalOpen(true);
+  }
+
+  async function handleCredit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!creditAccount || crediting) return;
+
+    const amount = Number(creditAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setCreditError('Enter an amount greater than zero.');
+      return;
+    }
+
+    if (!/^\d+(?:\.\d{1,2})?$/.test(creditAmount.trim())) {
+      setCreditError('Use a positive amount with no more than two decimal places.');
+      return;
+    }
+
+    setCrediting(true);
+    setCreditError('');
+    setSuccess('');
+
+    try {
+      const result = await creditManagedAccount(creditAccount.id, {
+        amount,
+        reference: creditReference,
+      });
+      setCreditModalOpen(false);
+      setSuccess(
+        `Credit confirmed: ${formatMoney(result.amount, result.currency)} added to account ${creditAccount.accountNumber}. New balance: ${formatMoney(result.balanceAfter, result.currency)}.`,
+      );
+      if (selectedUser) {
+        await loadAccounts(selectedUser.id);
+      }
+    } catch (error: unknown) {
+      setCreditError(explainError(error, 'Account credit failed. You can retry using the same reference.'));
+    } finally {
+      setCrediting(false);
     }
   }
 
@@ -330,9 +384,20 @@ export function AccountManagementPage() {
                       }`}>{account.status || 'INCONNU'}</span>
                     </div>
                   </div>
-                  <div className="sm:text-right">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Balance</p>
-                    <p className="mt-1 text-lg font-bold text-slate-900">{formatMoney(account.balance, account.currency)}</p>
+                  <div className="flex flex-col gap-3 sm:items-end">
+                    <div className="sm:text-right">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Balance</p>
+                      <p className="mt-1 text-lg font-bold text-slate-900">{formatMoney(account.balance, account.currency)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openCreditModal(account)}
+                      disabled={account.status !== 'ACTIVE' || crediting}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      title={account.status !== 'ACTIVE' ? 'Only active accounts can be credited' : 'Add funds to this account'}
+                    >
+                      <Plus className="h-4 w-4" /> Add funds
+                    </button>
                   </div>
                 </div>
               ))}
@@ -405,6 +470,97 @@ export function AccountManagementPage() {
             {createError && (
               <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{createError}
+              </div>
+            )}
+          </form>
+        )}
+      </Modal>
+      <Modal
+        open={creditModalOpen}
+        title="Add funds to an account"
+        onClose={() => { if (!crediting) setCreditModalOpen(false); }}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              onClick={() => setCreditModalOpen(false)}
+              disabled={crediting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="credit-bank-account-form"
+              disabled={crediting || !creditAccount}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {crediting && <LoaderCircle className="h-4 w-4 animate-spin" />}
+              {crediting ? 'Processing…' : 'Confirm credit'}
+            </button>
+          </>
+        }
+      >
+        {creditAccount && (
+          <form id="credit-bank-account-form" onSubmit={handleCredit} className="space-y-5">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Selected account</p>
+              <p className="mt-1 break-all font-mono text-sm font-semibold text-slate-900">
+                {creditAccount.accountNumber}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                Current balance: {formatMoney(creditAccount.balance, creditAccount.currency)}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">Account ID: {creditAccount.id} · {creditAccount.currency}</p>
+            </div>
+
+            <div>
+              <label htmlFor="credit-amount" className={labelClass}>Amount ({creditAccount.currency})</label>
+              <input
+                id="credit-amount"
+                name="amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                inputMode="decimal"
+                required
+                autoFocus
+                className={fieldClass}
+                value={creditAmount}
+                onChange={(event) => setCreditAmount(event.target.value)}
+                disabled={crediting}
+                placeholder="50.00"
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                This is a simulated administrative credit, not a real-money transaction.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="credit-reference" className={labelClass}>Operation reference</label>
+              <input
+                id="credit-reference"
+                name="reference"
+                type="text"
+                required
+                minLength={3}
+                maxLength={100}
+                pattern="[A-Za-z0-9_-]{3,100}"
+                className={fieldClass}
+                value={creditReference}
+                onChange={(event) => setCreditReference(event.target.value)}
+                disabled={crediting}
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                Keep the same reference when retrying this operation.
+              </p>
+            </div>
+
+            {creditError && (
+              <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{creditError}</span>
               </div>
             )}
           </form>

@@ -45,3 +45,32 @@ export async function createManagedAccount(
     body: JSON.stringify(data),
   });
 }
+
+
+export interface CreditAccountRequest {
+  amount: number;
+  reference: string;
+}
+
+export interface AccountCreditResult {
+  id: number;
+  accountId: number;
+  amount: number;
+  currency: string;
+  reference: string;
+  balanceAfter: number;
+  createdAt?: string;
+}
+
+export async function creditManagedAccount(
+  accountId: number,
+  data: CreditAccountRequest,
+): Promise<AccountCreditResult> {
+  return apiRequest<AccountCreditResult>(
+    `/api/accounts/${accountId}/credit`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  );
+}
