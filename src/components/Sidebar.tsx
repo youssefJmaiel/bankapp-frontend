@@ -1,7 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, Target, MessageSquare, Handshake, CreditCard, CalendarDays, X, Bot } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { LayoutDashboard, Users, Building2, Target, MessageSquare, Handshake, CreditCard, CalendarDays, X, Bot, Landmark } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const navItems = [
+const navItems: { to: string; label: string; icon: LucideIcon; adminOnly?: boolean }[] = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/employees', label: 'Employees', icon: Users },
   { to: '/departments', label: 'Departments', icon: Building2 },
@@ -10,11 +12,13 @@ const navItems = [
   { to: '/ai-assistant', label: 'AI Assistant', icon: Bot },
   { to: '/partners', label: 'Partners', icon: Handshake },
   { to: '/payments', label: 'Payments', icon: CreditCard },
+  { to: '/accounts', label: 'Bank Accounts', icon: Landmark, adminOnly: true },
   { to: '/leaves', label: 'Leave Management', icon: CalendarDays },
 ];
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-
+  const { user } = useAuth();
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || user?.roles.includes('ADMIN'));
 
   return (
     <>
@@ -44,7 +48,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
           <p className="px-3 text-[10px] font-semibold text-navy-500 uppercase tracking-wider mb-2">Menu</p>
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

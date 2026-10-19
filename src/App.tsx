@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
-import { ProtectedRoute, PublicOnlyRoute } from '@/routes/ProtectedRoute';
+import { ProtectedRoute, PublicOnlyRoute, AdminRoute } from '@/routes/ProtectedRoute';
 import { AppLayout } from '@/layouts/AppLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { DashboardPage } from '@/pages/DashboardPage';
@@ -12,6 +12,7 @@ import { PartnersPage } from '@/pages/PartnersPage';
 import { PaymentsPage } from '@/pages/PaymentsPage';
 import { LeavesPage } from '@/pages/LeavesPage';
 import { AIChatPage } from '@/pages/AIChatPage';
+import { AccountManagementPage } from '@/pages/AccountManagementPage';
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/partners" element={<PartnersPage />} />
             <Route path="/payments" element={<PaymentsPage />} />
+            <Route path="/accounts" element={<AdminRoute><AccountManagementPage /></AdminRoute>} />
             <Route path="/leaves" element={<LeavesPage />} />
             <Route path="/ai-assistant" element={<AIChatPage />} />
           </Route>

@@ -56,3 +56,26 @@ export function PublicOnlyRoute({ children }: { children: ReactNode }) {
 
   return <>{children}</>;
 }
+
+
+export function AdminRoute({ children }: { children: ReactNode }) {
+  const { status, user } = useAuth();
+
+  if (status === 'initializing') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-navy-950">
+        <Loader2 className="w-8 h-8 animate-spin text-mint-400" />
+      </div>
+    );
+  }
+
+  if (status !== 'authenticated') {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!user || !user.roles.includes('ADMIN')) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
