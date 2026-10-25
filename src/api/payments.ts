@@ -2,7 +2,8 @@ import { apiRequest } from './client';
 
 export interface TransferRequest {
   sourceAccountId: number;
-  destinationAccountId: number;
+  destinationAccountId?: number;
+  destinationAccountNumber?: string;
   amount: number;
   currency: string;
   reference?: string;
@@ -37,11 +38,6 @@ export async function getMyAccounts(): Promise<Account[]> {
   return apiRequest<Account[]>('/api/accounts/my');
 }
 
-export async function getAccountByNumber(accountNumber: string): Promise<Account> {
-  return apiRequest<Account>(
-    `/api/accounts/number/${encodeURIComponent(accountNumber)}`
-  );
-}
 
 export interface PaymentHistoryItem {
   id: number;

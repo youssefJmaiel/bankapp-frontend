@@ -24,7 +24,16 @@ export async function createMessage(data: Partial<Message>): Promise<Message> {
   });
 }
 
-export async function sendMessage(data: Partial<Message>): Promise<Message> {
+export interface SendMessageRequest {
+  content: string;
+  receiver: string;
+}
+
+export async function getMessageRecipients(): Promise<string[]> {
+  return apiRequest<string[]>('/api/employees/message-recipients');
+}
+
+export async function sendMessage(data: SendMessageRequest): Promise<Message> {
   return apiRequest<Message>('/api/message/send', {
     method: 'POST',
     body: JSON.stringify(data),

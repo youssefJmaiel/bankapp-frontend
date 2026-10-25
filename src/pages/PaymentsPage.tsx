@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import {
   createPayment,
-  getAccountByNumber,
   getMyAccounts,
   getMyPayments,
   type Account,
@@ -190,19 +189,9 @@ export function PaymentsPage() {
     setLoading(true);
 
     try {
-      const recipient = await getAccountByNumber(destinationNumber);
-
-      if (recipient.id === sourceAccount.id) {
-        throw new Error('The source and recipient accounts must be different.');
-      }
-
-      if (recipient.currency !== sourceAccount.currency) {
-        throw new Error('The source and recipient accounts must use the same currency.');
-      }
-
       const payment = await createPayment({
         sourceAccountId: sourceAccount.id,
-        destinationAccountId: recipient.id,
+        destinationAccountNumber: destinationNumber,
         amount: numericAmount,
         currency: sourceAccount.currency,
       });

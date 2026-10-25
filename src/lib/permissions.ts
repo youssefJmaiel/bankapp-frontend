@@ -42,6 +42,6 @@ export const permissions = {
     viewOne: ['USER', 'ADMIN'] as UserRole[],
     create: ['ADMIN'] as UserRole[],
     delete: ['ADMIN'] as UserRole[],
-    send: ['ADMIN'] as UserRole[],
+    send: ['USER', 'ADMIN'] as UserRole[],
   },
 } as const;

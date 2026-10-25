@@ -1,18 +1,19 @@
 import { useEffect, useState, useCallback } from 'react';
 import { MessageSquare, Send, Trash2, RefreshCw, CheckCircle2, Clock, Mail } from 'lucide-react';
-import { getMessages, getMyMessages, sendMessage, deleteMessage } from '@/api/messages';
+import { getMessages, getMyMessages, getMessageRecipients, sendMessage, deleteMessage } from '@/api/messages';
 import { PageHeader } from '@/components/PageHeader';
 import { Modal } from '@/components/Modal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ApiStateHandler } from '@/components/ApiState';
 import { ProcessedBadge } from '@/components/Badges';
 import { useAuth } from '@/hooks/useAuth';
-import { isAdmin } from '@/lib/permissions';
+import { isAdmin, isUser } from '@/lib/permissions';
 import type { Message } from '@/types';
 
 export function MessagesPage() {
   const { login, user } = useAuth();
   const admin = isAdmin(user?.roles ?? []);
+  const canSend = admin || isUser(user?.roles ?? []);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
@@ -23,7 +24,13 @@ export function MessagesPage() {
   const [sendLoading, setSendLoading] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState(false);
-  const [form, setForm] = useState<Partial<Message>>({ content: '', sender: '', receiver: '' });
+  const [recipients, setRecipients] = useState<string[]>([]);
+  const [recipientsLoading, setRecipientsLoading] = useState(false);
+  const [recipientsError, setRecipientsError] = useState<string | null>(null);
+  const [form, setForm] = useState<{ content: string; receiver: string }>({
+    content: '',
+    receiver: '',
+  });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -49,21 +56,50 @@ export function MessagesPage() {
   const processedCount = messages.filter((m) => m.processed === true).length;
   const pendingCount = messages.length - processedCount;
 
-  const openSend = () => {
-    setForm({ content: '', sender: user?.email || user?.username || '', receiver: '' });
+  const openSend = async () => {
+    setForm({ content: '', receiver: '' });
+    setRecipients([]);
+    setRecipientsError(null);
     setSendError(null);
     setSendSuccess(false);
     setSendModalOpen(true);
+    setRecipientsLoading(true);
+
+    try {
+      const data = await getMessageRecipients();
+      const eligibleRecipients = Array.isArray(data) ? data : [];
+      setRecipients(eligibleRecipients);
+      if (eligibleRecipients.length === 0) {
+        setRecipientsError('No eligible recipients are available for your role.');
+      }
+    } catch (err) {
+      setRecipientsError(
+        err instanceof Error ? err.message : 'Unable to load eligible recipients.'
+      );
+    } finally {
+      setRecipientsLoading(false);
+    }
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSend = async (
+    e?: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>
+  ) => {
+    e?.preventDefault();
+
+    if (!form.content.trim() || !form.receiver || !recipients.includes(form.receiver)) {
+      setSendError('Choose an eligible recipient and enter a message.');
+      return;
+    }
+
     setSendLoading(true);
     setSendError(null);
     try {
-      await sendMessage(form);
+      await sendMessage({
+        content: form.content.trim(),
+        receiver: form.receiver,
+      });
       setSendSuccess(true);
-      setForm({ content: '', sender: user?.email || user?.username || '', receiver: '' });
+      setForm({ content: '', receiver: '' });
       // Reload messages after a brief delay to show the new message
       setTimeout(() => {
         load();
@@ -96,7 +132,7 @@ export function MessagesPage() {
       <PageHeader
         title="Messages"
         subtitle={admin ? "IBM MQ banking message flow" : "Your banking messages"}
-        {...(admin ? { onAdd: openSend, addLabel: "Send Message" } : {})}
+        {...(canSend ? { onAdd: openSend, addLabel: "Send Message" } : {})}
         search={search}
         onSearchChange={setSearch}
       />
@@ -176,7 +212,7 @@ export function MessagesPage() {
       </ApiStateHandler>
 
       {/* Send Message Modal */}
-      {admin && <Modal
+      {canSend && <Modal
         open={sendModalOpen}
         title="Send Banking Message"
         onClose={() => { setSendModalOpen(false); setSendSuccess(false); }}
@@ -184,7 +220,7 @@ export function MessagesPage() {
         footer={
           <>
             <button onClick={() => { setSendModalOpen(false); setSendSuccess(false); }} className="btn-secondary" disabled={sendLoading}>Close</button>
-            <button onClick={handleSend} className="btn-primary" disabled={sendLoading || !form.content || sendSuccess}>
+            <button onClick={handleSend} className="btn-primary" disabled={sendLoading || !form.content.trim() || !form.receiver || recipientsLoading || recipients.length === 0 || sendSuccess}>
               {sendLoading ? 'Sending…' : sendSuccess ? 'Sent' : 'Send via IBM MQ'}
             </button>
           </>
@@ -218,15 +254,33 @@ export function MessagesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label-field">Sender</label>
-                <input className="input-field" value={form.sender ?? ''} onChange={(e) => setForm({ ...form, sender: e.target.value })} placeholder="sender@bank.com" />
-              </div>
-              <div>
-                <label className="label-field">Receiver</label>
-                <input className="input-field" value={form.receiver ?? ''} onChange={(e) => setForm({ ...form, receiver: e.target.value })} placeholder="receiver@bank.com" />
-              </div>
+            <div>
+              <label htmlFor="message-recipient" className="label-field">Recipient *</label>
+              <select
+                id="message-recipient"
+                className="input-field"
+                value={form.receiver}
+                onChange={(e) => setForm({ ...form, receiver: e.target.value })}
+                disabled={recipientsLoading || recipients.length === 0}
+                required
+              >
+                <option value="">
+                  {recipientsLoading
+                    ? 'Loading recipients…'
+                    : recipients.length === 0
+                      ? 'No eligible recipients'
+                      : 'Choose a recipient'}
+                </option>
+                {recipients.map((recipient) => (
+                  <option key={recipient} value={recipient}>{recipient}</option>
+                ))}
+              </select>
+              {recipientsError && (
+                <p className="mt-1 text-sm text-red-600" role="alert">{recipientsError}</p>
+              )}
+              <p className="mt-1 text-xs text-navy-400">
+                Your sender identity is taken from your authenticated session.
+              </p>
             </div>
             <div>
               <label className="label-field">Message Content *</label>
